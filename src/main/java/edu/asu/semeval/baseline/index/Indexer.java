@@ -127,9 +127,9 @@ public class Indexer {
 		Properties prop = new Properties();
 		InputStream input = null;
 		try {
-			input = new FileInputStream("config/config.properties");
+			input = new FileInputStream("config/application.properties");
 			prop.load(input);
-			dir = prop.getProperty("hierarchy.location");
+			dir = prop.getProperty("geonames.files.location");
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
