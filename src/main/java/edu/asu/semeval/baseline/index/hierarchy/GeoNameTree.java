@@ -84,7 +84,7 @@ public class GeoNameTree extends Tree {
 				if(!(f_class.equalsIgnoreCase("A") && f_code.equalsIgnoreCase("ZN"))) {	//remove regions like trade unions
 					if(geoname[0].equalsIgnoreCase("6295630")){							//ignore EARTH, already included
 						System.out.println("Skipping Earth");
-						break;
+						continue;
 					}
 					GeoNameLocation g = new GeoNameLocation();
 					g.setId(Integer.parseInt(geoname[0]));

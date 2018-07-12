@@ -54,7 +54,7 @@ public class Indexer {
 
 		Node node = null;
 		log = Logger.getLogger("Indexer");
-		int count =0, increment=50000;		
+		int count =0, increments=50000;		
 
 		log.info("complete_hierarchy started");
 		mapIDNodes = geoTree.getMapIDNodes();
@@ -69,7 +69,6 @@ public class Indexer {
 					String classType = mapIDNodes.get(id).getLocation().getTypeClass();
 					if(classType.equalsIgnoreCase("A") || classType.equalsIgnoreCase("P") ||
 							classType.equalsIgnoreCase("L")) {
-
 						LuceneObject luceneObject = new LuceneObject();
 						node = geoTree.getNode(id);
 						try {
@@ -77,35 +76,29 @@ public class Indexer {
 							List<Integer> parentsID = generateAncestorIdList(node);
 							String parentsName = generateAncestorNameList(parentsID);
 							String name = retreiveName(id);
-
-
 							luceneObject.setId(id);
 							luceneObject.setName(name);
 							luceneObject.setParentsID(listToString(parentsID));
 							luceneObject.setParentsName(parentsName);
 							luceneObject.setLocation(createLocationObject(id, geoTree));
 							arrayList.add(luceneObject);
-
 							count++;
-							if(count==increment) {
+							if(count%increments==0) {
 								log.info("complete_hierarchy.txt count: "+ count);
-								increment+=50000;
 							}
-						}catch(NullPointerException e) {
+						} catch(NullPointerException e) {
 							log.info("No hierarchy found for "+node.getID());
 						}
-
 					}
 				}
 			}
-		}catch (Exception e) {
+		} catch (Exception e) {
 			log.info("Error setting up hierarchy file");
 		}
 
 		log.info("---------Hierarchy file succesfully generated, records: "+count);
 
-
-		//writeToFile(arrayList);
+		writeToFile(arrayList);
 		WriteToLucene.toLucene(arrayList);
 
 	}
