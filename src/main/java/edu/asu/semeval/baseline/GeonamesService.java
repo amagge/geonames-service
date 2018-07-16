@@ -1,4 +1,4 @@
-package edu.asu.semeval.baseline.rest;
+package edu.asu.semeval.baseline;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -13,8 +13,6 @@ import edu.asu.semeval.baseline.indexer.Indexer;
 public class GeonamesService {
 
     public static void main(String[] args) {
-    	for(String arg : args)
-    		System.out.println(arg);
     	if(args.length > 0 && args[0].equalsIgnoreCase("create")){
     		Indexer.createIndex();
     	} else {
