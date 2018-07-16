@@ -230,25 +230,23 @@ public class LuceneSearcher {
 			parents = locations[1];
 			parents = parents.replace(",", " ").trim();
 			if (child.isEmpty() || parents.isEmpty()) {
-				queryString += parents.isEmpty()?"":"AncestorName:"+parents;
+				queryString += parents.isEmpty()?"":"AncestorsNames:"+parents;
 				queryString += child.isEmpty()?"":"Name:"+child;
 				if (child.isEmpty() && parents.isEmpty()) {
 					queryString = "Name:NOTAVALIDLOCATIONNAME";
 				}
 			} else {
-				queryString +="AncestorName:"+parents+" AND Name:"+child;
+				queryString +="AncestorsNames:"+parents+" AND Name:"+child;
 			}
 		} else {
-			// queryString = "Name:\""+location +"\" OR Country:\""+location+"\"";
+			//if there are multiple keywords, search by keyword as well
 			String[] keywords = location.split(" ");
 			if(keywords.length>1) {
 				for(String keyword : keywords){
-					queryString += "Name:\""+keyword +"\" OR Country:\""+keyword+"\" OR ";
+					queryString += "Name:\""+keyword +"\" OR ";
 				}
-				// Truncate the last OR
-				// queryString = queryString.substring(0, queryString.length()-4);
 			}
-			queryString = "Name:\""+location +"\" OR Country:\""+location+"\"";
+			queryString = "Name:\""+location +"\"";
 		}
 		logger.info("'" + location + "' ==> '" + queryString + "'");
 		return queryString;

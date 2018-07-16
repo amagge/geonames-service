@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
-import edu.asu.semeval.baseline.index.Indexer;
+import edu.asu.semeval.baseline.indexer.Indexer;
 
 @EnableAutoConfiguration(exclude={DataSourceAutoConfiguration.class})
 
