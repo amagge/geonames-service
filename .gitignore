@@ -35,6 +35,4 @@ hs_err_pid*
 # project files to ignore
 write.lock
 .vscode
-resources
-index/
 trash/
