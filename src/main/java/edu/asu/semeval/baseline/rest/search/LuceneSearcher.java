@@ -1,5 +1,7 @@
 package edu.asu.semeval.baseline.rest.search;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,6 +53,7 @@ public class LuceneSearcher {
 	
 	private Directory indexDirectory;
 	private QueryParser queryParser;
+	private Map<String, String> custMap;
 	
 	private static final FieldType LONG_FIELD_TYPE_STORED_SORTED = new FieldType();
 	static {
@@ -67,7 +71,8 @@ public class LuceneSearcher {
 	/**
 	 * Method that starts the Lucene Service and sanity checks the index
 	 */
-	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
+	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation,
+							@Value("${geonames.mapping.file}") String custMapFile) throws LuceneSearcherException {
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);
@@ -90,6 +95,10 @@ public class LuceneSearcher {
 				logger.warning("Index is empty!!");
 			}
 			reader.close();
+			// Load the map
+			logger.info("Loading custom map");
+			custMap = getCustomMap(custMapFile);
+			logger.info("Loaded custom map :" + custMap.size());
 		} catch (IOException ioe) {
 			logger.log(Level.SEVERE, "Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
 			throw new LuceneSearcherException("Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
@@ -134,7 +143,12 @@ public class LuceneSearcher {
 				collector = new TotalHitCountCollector();
 				indexSearcher.search(query, collector);
 			}
-			documents = indexSearcher.search(query, numRecords);
+
+			SortField sortField = new SortField("Population", SortField.Type.LONG, true);
+			Sort sort = new Sort(sortField);
+			documents = indexSearcher.search(query, numRecords, sort);
+
+			//documents = indexSearcher.search(query, numRecords);
 			List<Map<String,String>> mapList = new LinkedList<Map<String,String>>();
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
 				Document document = indexSearcher.doc(scoreDoc.doc);
@@ -167,11 +181,9 @@ public class LuceneSearcher {
 	}
 
 	/**
-	 * Search Lucene Index for list of locations and return best matched geonameid
-	 * @param querystring - valid Lucene query string
-	 * @param numRecords - number of requested records 
-	 * @param showAvailable - check for number of matching available records 
-	 * @return Top Lucene query results as a Result object
+	 * Search Lucene Index for a location and return best matched record
+	 * @param location - location in a string
+	 * @return Top Lucene query result as a Result object
 	 * @throws LuceneSearcherException 
 	 * @throws InvalidLuceneQueryException 
 	 */
@@ -184,7 +196,7 @@ public class LuceneSearcher {
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
-			String querystring = getQueryString(location); //"Name:"+namedEntity.getText().trim();
+			String querystring = getQueryString(location);
 			query = queryParser.parse(querystring);
 			logger.info("'" + querystring + "' ==> '" + query.toString() + "'");
 			collector = new TotalHitCountCollector();
@@ -192,17 +204,19 @@ public class LuceneSearcher {
 			Sort sort = new Sort(sortField);
 			indexSearcher.search(query, collector);
 			int totalCounts = collector.getTotalHits();
-			documents = indexSearcher.search(query, 1, sort);
 			List<Map<String,String>> mapList = new LinkedList<Map<String,String>>();
 			if (totalCounts > 0){
-				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
-				System.out.println(document.toString());
-				Map<String,String> docMap = new HashMap<String,String>();
-				List<IndexableField> fields = document.getFields();
-				for(IndexableField field : fields){
-					docMap.put(field.name(), field.stringValue());
+				int numRecords = Math.min(totalCounts, 5);
+				documents = indexSearcher.search(query, numRecords, sort);
+					for (ScoreDoc scoreDoc : documents.scoreDocs) {
+					Document document = indexSearcher.doc(scoreDoc.doc);
+					Map<String,String> docMap = new HashMap<String,String>();
+					List<IndexableField> fields = document.getFields();
+					for(IndexableField field : fields){
+						docMap.put(field.name(), field.stringValue());
+					}
+					mapList.add(docMap);
 				}
-				mapList.add(docMap);
 			}
 			Result result = new Result(mapList, mapList.size(), totalCounts);
 			return result;
@@ -223,33 +237,57 @@ public class LuceneSearcher {
 	}
 
 	private String getQueryString(String location) {
-		String[] locations = location.split(",",2);
-		String parents ="",queryString="";
-		if(locations.length>1) {
-			String child = locations[0];
-			parents = locations[1];
-			parents = parents.replace(",", " ").trim();
-			if (child.isEmpty() || parents.isEmpty()) {
-				queryString += parents.isEmpty()?"":"AncestorsNames:"+parents;
-				queryString += child.isEmpty()?"":"Name:"+child;
-				if (child.isEmpty() && parents.isEmpty()) {
-					queryString = "Name:NOTAVALIDLOCATIONNAME";
+		String queryString = "";
+		// First check if they are in the custom map
+		if (custMap.containsKey(location.trim())){
+			queryString = "GeonameId:\""+custMap.get(location.trim()) +"\"";
+		} else{
+			// Next check if there are commas and encode them as child, parent
+			String[] locations = location.split(",",2);
+			String parents = "";
+			if(locations.length>1) {
+				String child = locations[0];
+				parents = locations[1];
+				parents = parents.replace(",", " ").trim();
+				if (child.isEmpty() || parents.isEmpty()) {
+					queryString += parents.isEmpty()?"":"AncestorsNames:"+parents;
+					queryString += child.isEmpty()?"":"Name:"+child;
+					if (child.isEmpty() && parents.isEmpty()) {
+						queryString = "Name:NOTAVALIDLOCATIONNAME";
+					}
+				} else {
+					queryString +="AncestorsNames:"+parents+" AND Name:"+child;
 				}
 			} else {
-				queryString +="AncestorsNames:"+parents+" AND Name:"+child;
+				// Finally just perform a strict search
+				queryString = "Name:\""+location +"\"";
 			}
-		} else {
-			//if there are multiple keywords, search by keyword as well
-			String[] keywords = location.split(" ");
-			if(keywords.length>1) {
-				for(String keyword : keywords){
-					queryString += "Name:\""+keyword +"\" OR ";
-				}
-			}
-			queryString = "Name:\""+location +"\"";
 		}
 		logger.info("'" + location + "' ==> '" + queryString + "'");
 		return queryString;
 	}
+	
+	private static Map<String, String> getCustomMap(String filename) {
+		Map<String, String> map = new HashMap<String, String>();
+		File geoFile = new File(filename);
+		Scanner scan;
+		try {
+			scan = new Scanner(geoFile);
+			while (scan.hasNext()) {
+				String record = scan.nextLine().trim();
+				logger.info(record);
+				logger.info("NUM:" + record.split("\t").length);
+				if(record.split("\t").length==2){
+					logger.info("Adding:" + record.split("\t")[0].trim()+ record.split("\t")[1].trim());
+					map.put(record.split("\t")[0].trim(), record.split("\t")[1].trim());
+				}
+			}
+			scan.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		return map;
+	}
+
 
 }

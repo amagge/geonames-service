@@ -5,7 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
@@ -25,6 +27,7 @@ public class Indexer {
 	static Set<String> featClassExcl = null;
 	static Set<String> featCodeExcl = null;
 	static Set<String> featCodeIncl = null;
+	static Set<String> geonameIdsExcl = null;
 	static String geoAllCountriesFile = null;
 	static GeoNamesTree geoTree = null;
 	static LuceneWriter luceneWriter = null;
@@ -49,9 +52,11 @@ public class Indexer {
 			String featClassExclProp = prop.getProperty("geonames.feature_class.exclude");
 			String featCodeInclProp = prop.getProperty("geonames.feature_code.include");
 			String featCodeExclProp = prop.getProperty("geonames.feature_code.exclude");
+			String geonameIdsExclProp = prop.getProperty("geonames.geonameids.exclude");
 			featClassExcl = getPropAsSet(featClassExclProp);
 			featCodeIncl = getPropAsSet(featCodeInclProp);
 			featCodeExcl = getPropAsSet(featCodeExclProp);
+			geonameIdsExcl = getPropAsSet(geonameIdsExclProp);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -81,11 +86,12 @@ public class Indexer {
 			while (scan.hasNext()) {
 				String record = scan.nextLine().trim();
 				if(record.split("\t").length==19){
+					String geonameId = record.split("\t")[0];
 					String typeClass = record.split("\t")[6];
 					String typeCode = record.split("\t")[7];
 					// Do not process if not necessary
 					if((featClassExcl.contains(typeClass) && !featCodeIncl.contains(typeCode))
-							|| featCodeExcl.contains(typeCode)){
+							|| featCodeExcl.contains(typeCode) || geonameIdsExcl.contains(geonameId)){
 						continue;
 					}
 					GeoNameLocation geoNameLoc = getGeoNameLocation(record);
@@ -126,9 +132,20 @@ public class Indexer {
 			String countrycode = geoname[8];
 			String adm1 = geoname[10];
 			String adm2 = geoname[11]; 
-			//String adm3 = geoname[12]; //not used
-			//String adm4 = geoname[13]; //not used
 			String population = geoname[14];
+			
+			//Some continents don't have population, so better calculate them
+			if (typeCode.equals("CONT") && population.equals("0")){
+				String[] countries = geoname[9].split(",");
+				int totalPop = 0;
+				for (String ccode : countries) {
+					if(geoTree.getCountryLookup().containsKey(ccode)){
+						Country country = geoTree.getCountryLookup().get(ccode);
+						totalPop +=  country.getPopulation();
+					}
+				}
+				population = Integer.toString(totalPop);
+			}
 			
 			geoNameLoc = new GeoNameLocation(id, name, asciiname, alternatenames,
 					latitude, longitude, typeClass, typeCode,

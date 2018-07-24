@@ -153,7 +153,12 @@ public class LuceneWriter {
 				// if this is a country record record all variations of names
 				if (typeCode.equals("PCLI") && typeClass.equals("A")){
 					if(!name.equalsIgnoreCase(country)){
-						alternateNames.add(country);
+						String cleanName = cleanCountryNames(name, country);
+						if (name.equals(cleanName)){
+							alternateNames.add(country);
+						} else {
+							name = cleanName;
+						}
 					}
 					alternateNames.add(geoNameLoc.getCountry().getIso());
 					alternateNames.add(geoNameLoc.getCountry().getIso3());
@@ -161,8 +166,8 @@ public class LuceneWriter {
 					country += " (" + geoNameLoc.getCountry().getIso() + ", "
 							+ geoNameLoc.getCountry().getIso3() + ")"; 
 				}
-				String countryId = String.valueOf(geoNameLoc.getCountry().getId());
 				doc.add(new TextField("Country", country, Field.Store.YES));
+				String countryId = String.valueOf(geoNameLoc.getCountry().getId());
 				ancestorsNames.append(country + ", ");
 				ancestorsIds.append(countryId + ", ");
 				String continent = String.valueOf(geoNameLoc.getCountry().getContinent());
@@ -170,10 +175,10 @@ public class LuceneWriter {
 				ancestorsNames.append(continent);
 				
 				//create ancestors for easy querying
-				//doc.add(new TextField("AncestorsIds", ancestorsIds.toString(), Field.Store.YES));
 				doc.add(new TextField("AncestorsNames", ancestorsNames.toString(), Field.Store.YES));
-				
 				// TODO: Add method for appending continentId
+				//doc.add(new TextField("AncestorsIds", ancestorsIds.toString(), Field.Store.YES));
+				
 			} else {
 				//Check when it is not a country or continent or major region
 				print = true;
@@ -203,6 +208,18 @@ public class LuceneWriter {
 			log.info("error: "+ e.getMessage() + "for" + geoNameLoc);
 			e.printStackTrace();
 		}
-}
+	}
 
+	private String cleanCountryNames(String name, String country){
+		if (name.startsWith("United Kingdom of ")){
+			// We make this change as conjunctions in union names turns out
+			// to be a bad idea overall for search operations
+			// Also add abbrv UK which is not the ISO code for UK
+			name = "United Kingdom (Great Britain, UK)";
+		} else if (name.startsWith("United Arab Emirates")){
+			// Add missing abbrv UAE which is not the ISO code for it
+			name = "United Arab Emirates (UAE)";
+		}
+		return name;
+	}
 }
