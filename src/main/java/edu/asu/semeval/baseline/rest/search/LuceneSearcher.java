@@ -243,24 +243,24 @@ public class LuceneSearcher {
 			queryString = "GeonameId:\""+custMap.get(location.trim()) +"\"";
 		} else{
 			// Next check if there are commas and encode them as child, parent
-			String[] locations = location.split(",",2);
-			String parents = "";
-			if(locations.length>1) {
-				String child = locations[0];
-				parents = locations[1];
-				parents = parents.replace(",", " ").trim();
-				if (child.isEmpty() || parents.isEmpty()) {
-					queryString += parents.isEmpty()?"":"AncestorsNames:"+parents;
-					queryString += child.isEmpty()?"":"Name:"+child;
-					if (child.isEmpty() && parents.isEmpty()) {
-						queryString = "Name:NOTAVALIDLOCATIONNAME";
+			String[] locations = location.split(",");
+			for(int i=0; i<locations.length; i++){
+				String loc_part = locations[i].trim();
+				if (!loc_part.isEmpty()){
+					if (i == 0) {
+						queryString = "Name:\""+ loc_part +"\"";
+					} else {
+						if(!queryString.trim().isEmpty()){
+							queryString += " AND AncestorsNames:\""+ loc_part +"\"";
+						} else {
+							queryString = "AncestorsNames:\""+ loc_part +"\"";
+						}
 					}
-				} else {
-					queryString +="AncestorsNames:"+parents+" AND Name:"+child;
 				}
-			} else {
-				// Finally just perform a strict search
-				queryString = "Name:\""+location +"\"";
+			}
+			if(queryString.trim().isEmpty()){
+				logger.info("Empty query");;
+				queryString = "Name:NOTAVALIDLOCATIONNAME";
 			}
 		}
 		logger.info("'" + location + "' ==> '" + queryString + "'");

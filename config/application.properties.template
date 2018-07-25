@@ -1,14 +1,11 @@
 # Template for Spring Properties file. Original should NEVER be commited to GitHub
 
-# Default number of records to be requested when not requested explicitly
-lucene.query.default.records=100
-
-# Maximum number of records that can be returned by the API
-lucene.query.max.records=20000
-
 # Path to Lucene index directory
 lucene.index.location=index/geonames
 
+# -------------------------
+# Indexing RELATED PROPERTIES
+# -------------------------
 # Path to the Geonames files
 geonames.files.location=resources/
 
@@ -21,6 +18,23 @@ geonames.feature_code.include=CONT,RGN
 
 # List of feature codes to include for indexing
 geonames.feature_code.exclude=ZN
+
+# List of GeonameIds to skip indexing
+# TODO: If it exceeds 50, load from file
+geonames.geonameids.exclude=7729898,7730009
+
+# Mapping file for direct mapping of string to geonameids
+# Practical when population is not a good heuristic
+geonames.mapping.file=config/custom_mappings.tsv
+
+# -------------------------
+# SEARCH RELATED PROPERTIES
+# -------------------------
+# Default number of records to be requested when not requested explicitly
+lucene.query.default.records=100
+
+# Maximum number of records that can be returned by the API
+lucene.query.max.records=20000
 
 # Port to be used for the rest api
 server.port=8091
