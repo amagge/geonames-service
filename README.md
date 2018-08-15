@@ -1,4 +1,4 @@
-# geonames-services
+# geonames-service
 A java REST service for creating and searching GeoNames Apache Lucene indexes.
 
 ## Dependencies:
