@@ -28,13 +28,13 @@ public class GeoNamesTree {
     static
     {
     	continentLookup = new HashMap<String, String>();
-    	continentLookup.put("EU", "Europe");
-    	continentLookup.put("AS", "Asia");
-    	continentLookup.put("NA", "North America");
-    	continentLookup.put("SA", "South America");
-    	continentLookup.put("AF", "Africa");
-    	continentLookup.put("OC", "Oceania");
-    	continentLookup.put("AN", "Antarctica");
+    	continentLookup.put("EU", "6255148,Europe");
+    	continentLookup.put("AS", "6255147,Asia");
+    	continentLookup.put("NA", "6255149,North America");
+    	continentLookup.put("SA", "6255150,South America");
+    	continentLookup.put("AF", "6255146,Africa");
+    	continentLookup.put("OC", "6255151,Oceania");
+    	continentLookup.put("AN", "6255152,Antarctica");
     }
 	
 	private GeoNamesTree(String geoDirectory) {
@@ -65,13 +65,17 @@ public class GeoNamesTree {
 					String name = geoname[4];
 					double area = Double.parseDouble(geoname[6]);
 					int population = Integer.parseInt(geoname[7]);
-					String continent = "";
+					String continentName = "";
+					int continentId = -1;
 					String continentCode = geoname[8];
 					if(continentLookup.containsKey(continentCode)){
-						continent = continentLookup.get(continentCode);
+						String[] continentParts = continentLookup.get(continentCode).split(",");
+						continentId = Integer.parseInt(continentParts[0]);
+						continentName = continentParts[1];
 					}
 					int id = Integer.parseInt(geoname[16]);
-					Country country = new Country(iso, iso3, name, area, population, id, continent);
+					Country country = new Country(iso, iso3, name, area, population, id,
+													continentName, continentId);
 					countryLookup.put(iso,country);
 				}
 			}

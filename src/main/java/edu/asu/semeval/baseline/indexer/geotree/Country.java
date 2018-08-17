@@ -7,16 +7,19 @@ public class Country {
 	double area;
 	int population;
 	int id;
-	String continent;
+	String contName;
+	int contId;
 	
-	public Country(String iso, String iso3, String name, double area, int population, int id, String continent) {
+	public Country(String iso, String iso3, String name, double area, int population,
+					int id, String contName, int contId) {
 		this.iso = iso;
 		this.iso3 = iso3;
 		this.name = name;
 		this.area = area;
 		this.population = population;
 		this.id = id;
-		this.continent = continent;
+		this.contName = contName;
+		this.contId = contId;
 	}
 
 	public String getIso() {
@@ -43,8 +46,11 @@ public class Country {
 		return id;
 	}
 	
-	public String getContinent() {
-		return continent;
+	public String getContinentName() {
+		return contName;
 	}
 	
+	public int getContinentId() {
+		return contId;
+	}
 }

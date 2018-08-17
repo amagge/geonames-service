@@ -170,15 +170,15 @@ public class LuceneWriter {
 				String countryId = String.valueOf(geoNameLoc.getCountry().getId());
 				ancestorsNames.append(country + ", ");
 				ancestorsIds.append(countryId + ", ");
-				String continent = String.valueOf(geoNameLoc.getCountry().getContinent());
+				// Get Continent Info
+				String continent = geoNameLoc.getCountry().getContinentName();
+				String continentId = String.valueOf(geoNameLoc.getCountry().getContinentId());
 				doc.add(new TextField("Continent", continent, Field.Store.YES));
 				ancestorsNames.append(continent);
-				
+				ancestorsIds.append(continentId);
 				//create ancestors for easy querying
 				doc.add(new TextField("AncestorsNames", ancestorsNames.toString(), Field.Store.YES));
-				// TODO: Add method for appending continentId
-				//doc.add(new TextField("AncestorsIds", ancestorsIds.toString(), Field.Store.YES));
-				
+				doc.add(new TextField("AncestorsIds", ancestorsIds.toString(), Field.Store.YES));
 			} else {
 				//Check when it is not a country or continent or major region
 				print = true;
