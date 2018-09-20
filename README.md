@@ -2,12 +2,12 @@
 A java REST service for creating and searching GeoNames Apache Lucene indexes.
 
 ## Dependencies:
-* [JDK 1.8.x](http://www.oracle.com/technetwork/java/javase/overview/index.html)
+* [Java (JDK) 10.x](http://www.oracle.com/technetwork/java/javase/overview/index.html) Check branches for other versions of Java.
 * [Maven 3.x](https://maven.apache.org/index.html)
 
 ## Setup:
 
-1) Install Java 1.8 and Maven if not already installed
+1) Install Java (JDK) 10.x and Maven if not already installed
 
 2) Navigate to the GeoNames download site: http://download.geonames.org/export/dump/ and download the following four files into the ```resources``` directory:
 * ```admin1CodesASCII.txt```
