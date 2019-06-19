@@ -64,7 +64,6 @@ public class GeonamesServicesController {
 				try{
 					count = Integer.parseInt(countStr);
 					count = Math.min(QUERY_MAX_RECORDS, Math.abs(count));
-					logger.info("Requested count: " + count);
 				} catch (NumberFormatException e){
 					if(!countStr.equalsIgnoreCase("all")){
 						logger.warning("Didn't recognize count '" + countStr + "'. Assigning default "+ QUERY_DEFAULT_RECORDS);
@@ -96,12 +95,29 @@ public class GeonamesServicesController {
      */
     @RequestMapping(value="/location", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
-    public Result queryLocations(@RequestParam(value="location") String location) 
+    public Result queryLocations(@RequestParam(value="location") String location,
+								 @RequestParam(value="count", required = false) String countStr,
+								 @RequestParam(value="mode", required = false) String mode)
     		throws LuceneSearcherException, InvalidLuceneQueryException {
-    	Result results = indexSearcher.searchLocation(location);
-    	logger.info("Search for '" + location +"' found " + results.getAvailable() +
-    			" and retrieved " + results.getRetrieved() + " records");
-    	return results;
+		if (!location.trim().isEmpty()) {
+			int count = QUERY_DEFAULT_RECORDS;
+			if(countStr != null){
+				try{
+					count = Integer.parseInt(countStr);
+					count = Math.min(QUERY_MAX_RECORDS, Math.abs(count));
+				} catch (NumberFormatException e){
+					logger.warning("Didn't recognize count '" + countStr + "'. Assigning default "+ QUERY_DEFAULT_RECORDS);
+				}
+			} else {
+				logger.warning("Requesting default count "+ QUERY_DEFAULT_RECORDS);
+			}
+			Result results = indexSearcher.searchLocation(location, count, mode);
+			logger.info("Search for '" + location +"' found " + results.getAvailable() +
+					" and retrieved " + results.getRetrieved() + " records");
+			return results;
+		} else {
+			throw new InvalidLuceneQueryException(location);
+		}
     }
 
 }

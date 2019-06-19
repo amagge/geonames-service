@@ -5,7 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,13 +18,8 @@ import javax.annotation.PreDestroy;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-//import org.apache.lucene.analysis.core.KeywordAnalyzer;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -41,6 +36,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import edu.asu.semeval.baseline.indexer.LuceneWriter;
 import edu.asu.semeval.baseline.rest.exception.InvalidLuceneQueryException;
 import edu.asu.semeval.baseline.rest.exception.LuceneSearcherException;
 
@@ -54,17 +50,6 @@ public class LuceneSearcher {
 	private Directory indexDirectory;
 	private QueryParser queryParser;
 	private Map<String, String> custMap;
-	
-	private static final FieldType LONG_FIELD_TYPE_STORED_SORTED = new FieldType();
-	static {
-		LONG_FIELD_TYPE_STORED_SORTED.setTokenized(true);
-		LONG_FIELD_TYPE_STORED_SORTED.setOmitNorms(true);
-		LONG_FIELD_TYPE_STORED_SORTED.setIndexOptions(IndexOptions.DOCS);
-		LONG_FIELD_TYPE_STORED_SORTED.setNumericType(FieldType.NumericType.LONG);
-		LONG_FIELD_TYPE_STORED_SORTED.setStored(true);
-		LONG_FIELD_TYPE_STORED_SORTED.setDocValuesType(DocValuesType.NUMERIC);
-		LONG_FIELD_TYPE_STORED_SORTED.freeze();
-	}
 
 	private final static Logger logger = Logger.getLogger("LuceneSearcher");
 	
@@ -76,11 +61,8 @@ public class LuceneSearcher {
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);
-			CharArraySet stopWordsOverride = new CharArraySet(Collections.emptySet(), true);
-			Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
+			Analyzer analyzer = new StandardAnalyzer(LuceneWriter.stopWordsOverride);
 			queryParser = new QueryParser("Name", analyzer); 
-			// Analyzer analyzer = new KeywordAnalyzer(stopWordsOverride);
-			// queryParser = new QueryParser("dummyfield", new KeywordAnalyzer());
 			logger.info("Connected to Index at: "+indexLocation);
 			IndexReader reader = DirectoryReader.open(indexDirectory);
 			logger.info("Number of docs: "+reader.numDocs());
@@ -187,7 +169,7 @@ public class LuceneSearcher {
 	 * @throws LuceneSearcherException 
 	 * @throws InvalidLuceneQueryException 
 	 */
-	public Result searchLocation(String location) throws LuceneSearcherException, InvalidLuceneQueryException {
+	public Result searchLocation(String location, int maxRecs, String mode) throws LuceneSearcherException, InvalidLuceneQueryException {
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
@@ -196,29 +178,34 @@ public class LuceneSearcher {
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
-			String querystring = getQueryString(location);
-			query = queryParser.parse(querystring);
-			logger.info("'" + querystring + "' ==> '" + query.toString() + "'");
-			collector = new TotalHitCountCollector();
-			SortField sortField = new SortField("Population", SortField.Type.LONG, true);
-			Sort sort = new Sort(sortField);
-			indexSearcher.search(query, collector);
-			int totalCounts = collector.getTotalHits();
 			List<Map<String,String>> mapList = new LinkedList<Map<String,String>>();
-			if (totalCounts > 0){
-				int numRecords = Math.min(totalCounts, 5);
-				documents = indexSearcher.search(query, numRecords, sort);
+			Result result = new Result(mapList, mapList.size(), 0);
+			List<String> querystrings = getQueryString(location, mode);
+			for (String querystring : querystrings) {
+				query = queryParser.parse(querystring);
+				logger.info("'" + querystring + "' ==> '" + query.toString() + "'");
+				collector = new TotalHitCountCollector();
+				SortField sortField = new SortField("Population", SortField.Type.LONG, true);
+				Sort sort = new Sort(sortField);
+				indexSearcher.search(query, collector);
+				int totalCounts = collector.getTotalHits();
+				if (totalCounts > 0){
+					int numRecords = Math.min(totalCounts, maxRecs);
+					documents = indexSearcher.search(query, numRecords, sort);
 					for (ScoreDoc scoreDoc : documents.scoreDocs) {
-					Document document = indexSearcher.doc(scoreDoc.doc);
-					Map<String,String> docMap = new HashMap<String,String>();
-					List<IndexableField> fields = document.getFields();
-					for(IndexableField field : fields){
-						docMap.put(field.name(), field.stringValue());
+						Document document = indexSearcher.doc(scoreDoc.doc);
+						Map<String,String> docMap = new HashMap<String,String>();
+						List<IndexableField> fields = document.getFields();
+						for(IndexableField field : fields){
+							docMap.put(field.name(), field.stringValue());
+						}
+						mapList.add(docMap);
 					}
-					mapList.add(docMap);
+					result = new Result(mapList, mapList.size(), totalCounts);
+					// break if already found based on search mode
+					break;
 				}
 			}
-			Result result = new Result(mapList, mapList.size(), totalCounts);
 			return result;
 		} catch (ParseException pe) {
 			throw new InvalidLuceneQueryException(pe.getMessage());
@@ -236,12 +223,16 @@ public class LuceneSearcher {
 		}
 	}
 
-	private String getQueryString(String location) {
+	private List<String> getQueryString(String location, String mode) {
+		List<String> queryStrings = new ArrayList<String>();
 		String queryString = "";
 		// First check if they are in the custom map
 		if (custMap.containsKey(location.trim())){
 			queryString = "GeonameId:\""+custMap.get(location.trim()) +"\"";
-		} else{
+		} else {
+			// future case where we can have prioritized search strings
+			// if (mode != null && mode.equalsIgnoreCase("")){
+			// }
 			// Next check if there are commas and encode them as child, parent
 			String[] locations = location.split(",");
 			for(int i=0; i<locations.length; i++){
@@ -264,7 +255,8 @@ public class LuceneSearcher {
 			}
 		}
 		logger.info("'" + location + "' ==> '" + queryString + "'");
-		return queryString;
+		queryStrings.add(queryString);
+		return queryStrings;
 	}
 	
 	private static Map<String, String> getCustomMap(String filename) {
@@ -275,10 +267,8 @@ public class LuceneSearcher {
 			scan = new Scanner(geoFile);
 			while (scan.hasNext()) {
 				String record = scan.nextLine().trim();
-				logger.info(record);
-				logger.info("NUM:" + record.split("\t").length);
 				if(record.split("\t").length==2){
-					logger.info("Adding:" + record.split("\t")[0].trim()+ record.split("\t")[1].trim());
+					logger.info("Adding:'" + record.split("\t")[0].trim() +"':'"+ record.split("\t")[1].trim()+"'");
 					map.put(record.split("\t")[0].trim(), record.split("\t")[1].trim());
 				}
 			}

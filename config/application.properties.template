@@ -11,10 +11,11 @@ geonames.files.location=resources/
 
 # List of feature classes to be excluded for indexing
 # Entries will be included if their feature codes are included
+# Reference: https://www.geonames.org/export/codes.html
 geonames.feature_class.exclude=H,L,R,S,T,U,V
 
 # List of feature codes to include for indexing
-geonames.feature_code.include=CONT,RGN
+geonames.feature_code.include=CONT,RGN,RESN,PRK,ISL,ISLS
 
 # List of feature codes to include for indexing
 geonames.feature_code.exclude=ZN
@@ -34,7 +35,7 @@ geonames.mapping.file=config/custom_mappings.tsv
 lucene.query.default.records=100
 
 # Maximum number of records that can be returned by the API
-lucene.query.max.records=20000
+lucene.query.max.records=1000
 
 # Port to be used for the rest api
 server.port=8091

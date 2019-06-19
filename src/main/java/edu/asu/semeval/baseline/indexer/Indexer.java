@@ -5,9 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
@@ -124,7 +122,8 @@ public class Indexer {
 			int id = Integer.parseInt(geoname[0]);
 			String name = geoname[1];
 			String asciiname = geoname[2];
-			String[] alternatenames = geoname[3].split(",");
+			// We'll use specific alternate names
+			// Set<String> alternatenames = new HashSet<String>(Arrays.asList(geoname[3].split(",")));
 			Double latitude = Double.parseDouble(geoname[4]);
 			Double longitude = Double.parseDouble(geoname[5]);
 			String typeClass = geoname[6];
@@ -133,6 +132,14 @@ public class Indexer {
 			String adm1 = geoname[10];
 			String adm2 = geoname[11]; 
 			String population = geoname[14];
+
+			//Load specific alternate names i.e. english, abbrv etc.
+			Set<String> alternatenames = null;
+			if(geoTree.getAltNamesLookup().containsKey(id)){
+				alternatenames = geoTree.getAltNamesLookup().get(id);
+			} else {
+				alternatenames = new HashSet<String>();
+			}
 			
 			//Some continents don't have population, so better calculate them
 			if (typeCode.equals("CONT") && population.equals("0")){

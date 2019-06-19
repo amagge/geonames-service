@@ -1,12 +1,12 @@
 package edu.asu.semeval.baseline.indexer.geotree;
 
-import java.util.Arrays;
+import java.util.Set;
 
 public class GeoNameLocation {
 	private int id;
 	private String name;
 	private String asciiname;
-	private String[] alternatenames;
+	private Set<String> alternatenames;
 	private double latitude;
 	private double longitude;
 	private String typeClass;
@@ -17,7 +17,7 @@ public class GeoNameLocation {
 	private Adm county;
 	private Country country;
 
-	public GeoNameLocation(int id, String name, String asciiname, String[] alternatenames, double latitude,
+	public GeoNameLocation(int id, String name, String asciiname, Set<String> alternatenames, double latitude,
 			double longitude, String typeClass, String typeCode, String countrycode, String population) {
 		this.id = id;
 		this.name = name;
@@ -46,7 +46,7 @@ public class GeoNameLocation {
 		return asciiname;
 	}
 
-	public String[] getAlternatenames() {
+	public Set<String>  getAlternatenames() {
 		return alternatenames;
 	}
 
@@ -98,7 +98,7 @@ public class GeoNameLocation {
 		this.asciiname = asciiname;
 	}
 
-	public void setAlternatenames(String[] alternatenames) {
+	public void setAlternatenames(Set<String>  alternatenames) {
 		this.alternatenames = alternatenames;
 	}
 
@@ -141,7 +141,7 @@ public class GeoNameLocation {
 	@Override
 	public String toString() {
 		return "GeoNameLocation [id=" + id + ", name=" + name + ", asciiname=" + asciiname + ", alternatenames="
-				+ Arrays.toString(alternatenames) + ", latitude=" + latitude + ", longitude=" + longitude
+				+ String.join(",", alternatenames) + ", latitude=" + latitude + ", longitude=" + longitude
 				+ ", typeClass=" + typeClass + ", typeCode=" + typeCode + ", countrycode=" + countrycode
 				+ ", population=" + population + ", state=" + state + ", county=" + county + ", country=" + country
 				+ "]";

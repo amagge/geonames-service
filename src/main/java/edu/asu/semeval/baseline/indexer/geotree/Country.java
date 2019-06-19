@@ -1,17 +1,20 @@
 package edu.asu.semeval.baseline.indexer.geotree;
 
+import java.util.Set;
+
 public class Country {
-	String iso;
-	String iso3;
-	String name;
-	double area;
-	int population;
-	int id;
-	String contName;
-	int contId;
+	private String iso;
+	private String iso3;
+	private String name;
+	private double area;
+	private int population;
+	private int id;
+	private String contName;
+	private int contId;
+	private Set<String> alternatenames;
 	
 	public Country(String iso, String iso3, String name, double area, int population,
-					int id, String contName, int contId) {
+					int id, String contName, int contId, Set<String> alternatenames) {
 		this.iso = iso;
 		this.iso3 = iso3;
 		this.name = name;
@@ -20,6 +23,7 @@ public class Country {
 		this.id = id;
 		this.contName = contName;
 		this.contId = contId;
+		this.alternatenames = alternatenames;
 	}
 
 	public String getIso() {
@@ -52,5 +56,9 @@ public class Country {
 	
 	public int getContinentId() {
 		return contId;
+	}
+
+	public Set<String> getAlternatenames() {
+		return alternatenames;
 	}
 }

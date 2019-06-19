@@ -1,16 +1,21 @@
 package edu.asu.semeval.baseline.indexer.geotree;
 
-public class Adm {
-	String code;
-	String name;
-	String asciiname;
-	int id;
+import java.util.Set;
 
-	public Adm(String code, String name, String asciiname, int id) {
+public class Adm {
+	private String code;
+	private String name;
+	private String asciiname;
+	private int id;
+	private Set<String> alternatenames;
+
+
+	public Adm(String code, String name, String asciiname, int id, Set<String> alternatenames) {
 		this.code = code;
 		this.name = name;
 		this.asciiname = asciiname;
 		this.id = id;
+		this.alternatenames = alternatenames;
 	}
 
 	public String getCode() {
@@ -29,4 +34,7 @@ public class Adm {
 		return id;
 	}
 	
+	public Set<String> getAlternatenames() {
+		return alternatenames;
+	}
 }

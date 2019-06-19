@@ -14,6 +14,8 @@ A java REST service for creating and searching GeoNames Apache Lucene indexes.
 * ```admin2Codes.txt```
 * ```allCountries.txt```
 * ```countryInfo.txt``` 
+* ```alternateNamesV2.txt``` 
+
 3) Create a copy of the [application.properties.template](config/application.properties.template) file in the ```config``` folder. Rename it to ```application.properties```. Configure the paths according to the instructions shown.
 
 4) To create the binaries, run the command:
