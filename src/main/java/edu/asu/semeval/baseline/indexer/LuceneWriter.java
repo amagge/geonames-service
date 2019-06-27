@@ -12,6 +12,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
@@ -98,7 +99,8 @@ public class LuceneWriter {
 			doc.add(new StringField("Code", typeCode, Field.Store.YES));
 			
 			Long population = Long.parseLong(geoNameLoc.getPopulation());
-			doc.add(new NumericDocValuesField("Population", population+1));
+			doc.add(new NumericDocValuesField("Population", population));
+			doc.add(new StoredField("Population", population));
 			
 			String latitude = String.valueOf(geoNameLoc.getLatitude());
 			doc.add(new StringField("Latitude", latitude, Field.Store.YES));
@@ -203,13 +205,15 @@ public class LuceneWriter {
 		StringBuilder altNamesStr = new StringBuilder(name);
 		if(altNames.size() > 0){
 			altNamesStr.append(" (");
+			boolean hasValidAlternateName = false;
 			for (String alternateName : altNames){
 				if (!alternateName.equalsIgnoreCase(name)){
 					altNamesStr.append(alternateName + ", "); 
+					hasValidAlternateName = true;
 				}
 			}
 			altNamesStr.setLength(altNamesStr.length() - 2);
-			if(!altNamesStr.toString().trim().isEmpty())
+			if(hasValidAlternateName)
 				altNamesStr.append(")");
 		}
 		return altNamesStr.toString();
