@@ -27,7 +27,7 @@ import edu.asu.semeval.baseline.indexer.geotree.GeoNameLocation;
 
 
 public class LuceneWriter {
-	public static final List<String> stops = Arrays.asList("and", "of", "the", "state", "province", "county"); 
+	public static final List<String> stops = Arrays.asList("and", "of", "the", "state", "province", "county", "area", "region"); 
 	public static final CharArraySet stopWordsOverride = new CharArraySet(stops, true);
 	// If you don't want to use stop words, use the following line instead
 	// CharArraySet stopWordsOverride = new CharArraySet(Collections.emptySet(), true);
@@ -175,6 +175,11 @@ public class LuceneWriter {
 			//Finally add the name field
 			name = getAlternateNamesStr(id, name, alternateNames);
 			doc.add(new TextField("Name", name, Field.Store.YES));
+			if (ancestorsNames.toString() != ""){
+				doc.add(new TextField("FullHierarchy", name + ", " + ancestorsNames.toString(), Field.Store.YES));
+			} else {
+				doc.add(new TextField("FullHierarchy", name, Field.Store.YES));
+			}
 
 			// add all alternate names individually for strict search
 			// doc.add(new TextField("Name", name, Field.Store.YES));

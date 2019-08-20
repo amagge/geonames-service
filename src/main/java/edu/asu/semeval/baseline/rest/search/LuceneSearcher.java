@@ -180,7 +180,7 @@ public class LuceneSearcher {
 			indexSearcher = new IndexSearcher(reader);
 			List<Map<String,String>> mapList = new LinkedList<Map<String,String>>();
 			Result result = new Result(mapList, mapList.size(), 0);
-			List<String> querystrings = getQueryString(location, mode);
+			List<String> querystrings = getQueryString(location.trim(), mode);
 			for (String querystring : querystrings) {
 				query = queryParser.parse(querystring);
 				logger.info("'" + querystring + "' ==> '" + query.toString() + "'");
@@ -226,36 +226,53 @@ public class LuceneSearcher {
 	private List<String> getQueryString(String location, String mode) {
 		List<String> queryStrings = new ArrayList<String>();
 		String queryString = "";
+		String fullQueryString = "";
+		boolean addFullQuery = false;
 		// First check if they are in the custom map
-		if (custMap.containsKey(location.trim())){
-			queryString = "GeonameId:\""+custMap.get(location.trim()) +"\"";
+		if (custMap.containsKey(location)){
+			queryString = "GeonameId:\""+custMap.get(location) +"\"";
 		} else {
-			// future case where we can have prioritized search strings
-			// if (mode != null && mode.equalsIgnoreCase("")){
-			// }
 			// Next check if there are commas and encode them as child, parent
 			String[] locations = location.split(",");
+			if (mode != null && mode.equalsIgnoreCase("full") && locations.length > 1){
+				addFullQuery = true;
+			}
+			int termCount = 0;
 			for(int i=0; i<locations.length; i++){
 				String loc_part = locations[i].trim();
 				if (!loc_part.isEmpty()){
-					if (i == 0) {
+					if (termCount == 0) {
 						queryString = "Name:\""+ loc_part +"\"";
 					} else {
 						if(!queryString.trim().isEmpty()){
 							queryString += " AND AncestorsNames:\""+ loc_part +"\"";
 						} else {
+							// this part should never be executed so remove it anyway
 							queryString = "AncestorsNames:\""+ loc_part +"\"";
 						}
 					}
+					if (addFullQuery) {
+						fullQueryString += termCount==0 ? "FullHierarchy:\""+ loc_part +"\"" : " AND FullHierarchy:\""+ loc_part +"\"";
+					}
+					termCount++;
 				}
+			}
+			if (locations.length > 1){
+				// if more than one field, add full query in the hierarchy
+				addFullQuery = true;
 			}
 			if(queryString.trim().isEmpty()){
 				logger.info("Empty query");;
 				queryString = "Name:NOTAVALIDLOCATIONNAME";
 			}
 		}
-		logger.info("'" + location + "' ==> '" + queryString + "'");
+		logger.info("Query:'" + location + "' ==> '" + queryString + "'");
 		queryStrings.add(queryString);
+		// Check and add full query string
+		if (addFullQuery){
+			logger.info("Full Query:'" + location + "' ==> '" + fullQueryString + "'");
+			queryStrings.add(fullQueryString);
+		}
 		return queryStrings;
 	}
 	
