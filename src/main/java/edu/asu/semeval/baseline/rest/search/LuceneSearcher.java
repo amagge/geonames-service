@@ -22,8 +22,12 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -165,6 +169,8 @@ public class LuceneSearcher {
 	/**
 	 * Search Lucene Index for a location and return best matched record
 	 * @param location - location in a string
+	 * @param maxRecs - maximum records to be returned
+	 * @param mode - search mode i.e. default, strict, full (more needs to be added)
 	 * @return Top Lucene query result as a Result object
 	 * @throws LuceneSearcherException 
 	 * @throws InvalidLuceneQueryException 
@@ -172,7 +178,6 @@ public class LuceneSearcher {
 	public Result searchLocation(String location, int maxRecs, String mode) throws LuceneSearcherException, InvalidLuceneQueryException {
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
-		Query query;
 		TopDocs documents;
 		TotalHitCountCollector collector = null;
 		try {
@@ -180,10 +185,9 @@ public class LuceneSearcher {
 			indexSearcher = new IndexSearcher(reader);
 			List<Map<String,String>> mapList = new LinkedList<Map<String,String>>();
 			Result result = new Result(mapList, mapList.size(), 0);
-			List<String> querystrings = getQueryString(location.trim(), mode);
-			for (String querystring : querystrings) {
-				query = queryParser.parse(querystring);
-				logger.info("'" + querystring + "' ==> '" + query.toString() + "'");
+			List<Query> queries = getQueries(location.trim(), mode);
+			for (Query query : queries) {
+				logger.info("'" + location + "' ==> '" + query.toString() + "'");
 				collector = new TotalHitCountCollector();
 				SortField sortField = new SortField("Population", SortField.Type.LONG, true);
 				Sort sort = new Sort(sortField);
@@ -207,8 +211,6 @@ public class LuceneSearcher {
 				}
 			}
 			return result;
-		} catch (ParseException pe) {
-			throw new InvalidLuceneQueryException(pe.getMessage());
 		} catch (Exception e) {
 			throw new LuceneSearcherException(e.getMessage());
 		} finally {
@@ -223,11 +225,20 @@ public class LuceneSearcher {
 		}
 	}
 
-	private List<String> getQueryString(String location, String mode) {
-		List<String> queryStrings = new ArrayList<String>();
+	/**
+	 * Based on the location, a list of Lucene Query objects are retrieved arranged from strict to relaxed
+	 * @param location - location in a string
+	 * @param mode - search mode i.e. default, strict, full (more needs to be added)
+	 * @return List of Lucene Query objects
+	 */
+	private List<Query> getQueries(String location, String mode) {
+		List<Query> queries = new ArrayList<Query>();
 		String queryString = "";
 		String fullQueryString = "";
 		boolean addFullQuery = false;
+		Query query;
+		FuzzyQuery fuzzyQuery;
+		BooleanQuery.Builder boolQueryBuilder = null;
 		// First check if they are in the custom map
 		if (custMap.containsKey(location)){
 			queryString = "GeonameId:\""+custMap.get(location) +"\"";
@@ -243,11 +254,25 @@ public class LuceneSearcher {
 				if (!loc_part.isEmpty()){
 					if (termCount == 0) {
 						queryString = "Name:\""+ loc_part +"\"";
+						boolQueryBuilder = new BooleanQuery.Builder();
+						String[] loc_subparts = loc_part.split(" ");
+						for(String loc_subpart: loc_subparts){
+							fuzzyQuery = new FuzzyQuery(new Term("Name", loc_subpart.toLowerCase()), 1);
+							boolQueryBuilder.add(fuzzyQuery, BooleanClause.Occur.MUST);
+						}
 					} else {
 						if(!queryString.trim().isEmpty()){
 							queryString += " AND AncestorsNames:\""+ loc_part +"\"";
+							if (boolQueryBuilder != null) {
+								int editDistance = (i==locations.length-1 ? 0 : 1);
+								String[] loc_subparts = loc_part.split(" ");
+								for(String loc_subpart: loc_subparts){
+									fuzzyQuery = new FuzzyQuery(new Term("AncestorsNames", loc_subpart.toLowerCase()), editDistance);
+									boolQueryBuilder.add(fuzzyQuery, BooleanClause.Occur.MUST);
+								}
+							}
 						} else {
-							// this part should never be executed so remove it anyway
+							// this part should never be executed so remove it anyway (??)
 							queryString = "AncestorsNames:\""+ loc_part +"\"";
 						}
 					}
@@ -262,20 +287,35 @@ public class LuceneSearcher {
 				addFullQuery = true;
 			}
 			if(queryString.trim().isEmpty()){
-				logger.info("Empty query");;
+				logger.warning("Empty query");
 				queryString = "Name:NOTAVALIDLOCATIONNAME";
 			}
 		}
-		logger.info("Query:'" + location + "' ==> '" + queryString + "'");
-		queryStrings.add(queryString);
+		try {
+			query = queryParser.parse(queryString);
+			// logger.info("Query:'" + location + "' ==> '" + queryString + "' ==> '" + query + "'");
+			queries.add(query);
+		} catch (ParseException e) {
+			logger.warning("Error parsing query for:'" + location + "' ==> '" + queryString + "'");;
+		}
 		// Check and add full query string
 		if (addFullQuery){
-			logger.info("Full Query:'" + location + "' ==> '" + fullQueryString + "'");
-			queryStrings.add(fullQueryString);
+			try {
+				query = queryParser.parse(fullQueryString);
+				// logger.info("Full Query:'" + location + "' ==> '" + fullQueryString + "' ==> '" + query + "'");
+				queries.add(query);
+			} catch (Exception e) {
+				logger.warning("Error parsing query for:'" + location + "' ==> '" + fullQueryString + "'");;
+			}
+			if (boolQueryBuilder != null) {
+				BooleanQuery boolQuery = boolQueryBuilder.build();
+				// logger.info("Fuzzy Query:'" + location + "' ==> '" + boolQuery.toString() + "'");
+				queries.add(boolQuery);
+			}
 		}
-		return queryStrings;
+		return queries;
 	}
-	
+
 	private static Map<String, String> getCustomMap(String filename) {
 		Map<String, String> map = new HashMap<String, String>();
 		File geoFile = new File(filename);
