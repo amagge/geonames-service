@@ -12,7 +12,7 @@ A java REST service for creating and searching GeoNames Apache Lucene indexes.
 2) Navigate to the GeoNames download site: http://download.geonames.org/export/dump/ and download the following four files into the ```resources``` directory:
 * ```admin1CodesASCII.txt```
 * ```admin2Codes.txt```
-* ```allCountries.txt```
+* ```allCountries.txt``` (extracted from ```allCountries.zip```)
 * ```countryInfo.txt``` 
 * ```alternateNamesV2.txt``` 
 

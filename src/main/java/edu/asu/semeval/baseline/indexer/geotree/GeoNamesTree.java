@@ -142,8 +142,8 @@ public class GeoNamesTree {
 			Scanner scan = new Scanner(geoFile);
 			while (scan.hasNext()) {
 				line = scan.nextLine();
-				if (!line.startsWith("#")) {
-					String[] geoname = line.trim().split("\t");
+				String[] geoname = line.trim().split("\t");
+				if (!line.startsWith("#") && geoname.length >= 4) {
 					String code = geoname[0];
 					String name = geoname[1];
 					String asciiname = geoname[2];

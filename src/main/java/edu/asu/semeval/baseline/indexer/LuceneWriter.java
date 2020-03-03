@@ -27,7 +27,7 @@ import edu.asu.semeval.baseline.indexer.geotree.GeoNameLocation;
 
 
 public class LuceneWriter {
-	public static final List<String> stops = Arrays.asList("and", "of", "the", "state", "province", "county", "area", "region"); 
+	public static final List<String> stops = Arrays.asList("and", "of", "the", "state", "province", "county", "area", "region", "prefecture"); 
 	public static final CharArraySet stopWordsOverride = new CharArraySet(stops, true);
 	// If you don't want to use stop words, use the following line instead
 	// CharArraySet stopWordsOverride = new CharArraySet(Collections.emptySet(), true);
@@ -115,6 +115,7 @@ public class LuceneWriter {
 				String admId = String.valueOf(geoNameLoc.getCounty().getId());
 				adm = getAlternateNamesStr(admId, adm, countyAltNames);
 				doc.add(new TextField("County", adm, Field.Store.YES));
+				doc.add(new StringField("ADM2", admId, Field.Store.YES));
 				ancestorsNames.append(adm + ", ");
 				ancestorsIds.append(admId + ", ");
 			}
@@ -135,6 +136,7 @@ public class LuceneWriter {
 				adm = getAlternateNamesStr(id, adm, stateAltNames);
 				String admId = String.valueOf(geoNameLoc.getState().getId());
 				doc.add(new TextField("State", adm, Field.Store.YES));
+				doc.add(new StringField("ADM1", admId, Field.Store.YES));
 				if (!typeCode.equalsIgnoreCase("ADM1")){
 					ancestorsNames.append(adm + ", ");
 					ancestorsIds.append(admId + ", ");
@@ -153,6 +155,7 @@ public class LuceneWriter {
 				}
 				doc.add(new TextField("Country", country, Field.Store.YES));
 				String countryId = String.valueOf(geoNameLoc.getCountry().getId());
+				doc.add(new StringField("PCL", countryId, Field.Store.YES));
 				country = getAlternateNamesStr(countryId, country, countryAltNames);
 				if (!typeCode.equalsIgnoreCase("PCLI")){
 					ancestorsNames.append(country + ", ");

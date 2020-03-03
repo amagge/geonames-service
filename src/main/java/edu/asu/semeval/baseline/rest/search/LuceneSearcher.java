@@ -245,7 +245,7 @@ public class LuceneSearcher {
 		} else {
 			// Next check if there are commas and encode them as child, parent
 			String[] locations = location.split(",");
-			if (mode != null && mode.equalsIgnoreCase("full") && locations.length > 1){
+			if (mode != null && mode.equalsIgnoreCase("full")){
 				addFullQuery = true;
 			}
 			int termCount = 0;
