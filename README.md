@@ -1,5 +1,5 @@
 # geonames-service
-A java REST service for creating and searching GeoNames Apache Lucene indexes.
+A java REST service for creating and searching [GeoNames](geonames.org) Apache Lucene indexes.
 
 ## Dependencies:
 * [Java (JDK) 10.x](http://www.oracle.com/technetwork/java/javase/overview/index.html) Check branches for other versions of Java.
@@ -9,25 +9,25 @@ A java REST service for creating and searching GeoNames Apache Lucene indexes.
 
 1) Install Java (JDK) 10.x and Maven if not already installed
 
-2) Navigate to the GeoNames download site: http://download.geonames.org/export/dump/ and download the following four files into the ```resources``` directory:
-* ```admin1CodesASCII.txt```
-* ```admin2Codes.txt```
-* ```allCountries.txt``` (extracted from ```allCountries.zip```)
-* ```countryInfo.txt``` 
-* ```alternateNamesV2.txt``` 
+2) Create a copy of the [application.properties.template](config/application.properties.template) file in the ```config``` folder. Rename it to ```application.properties```. Configure the paths according to the instructions shown.
 
-3) Create a copy of the [application.properties.template](config/application.properties.template) file in the ```config``` folder. Rename it to ```application.properties```. Configure the paths according to the instructions shown.
-
-4) To create the binaries, run the command:
+3) To create the binaries, run the command:
 ```
 mvn clean package
 ```
 This will download the required packages using Maven and build the system. The build should run successfully and generate a runnable jar in the ```target``` folder which can be run via terminal as shown below.
 
-5) Create the lucene index using the command.
+4) Download the GeoNames files using the command. 
+```
+java -jar target/geonames-service-0.1.0.jar download
+```
+This downloads the required GeoNames files (about 2.3 GB disk space) into the ```resources``` directory.
+
+5) Create the lucene index using the command. This may
 ```
 java -jar target/geonames-service-0.1.0.jar create
 ```
+This creates a searchable Lucene Index (about 1.5 GB disk space) in the ```index``` directory.
 
 6) Run the services for querying data
 ```

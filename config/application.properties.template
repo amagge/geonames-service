@@ -6,7 +6,10 @@ lucene.index.location=index/geonames
 # -------------------------
 # Indexing RELATED PROPERTIES
 # -------------------------
-# Path to the Geonames files
+# root URL to download geonames files
+geonames.download.url=http://download.geonames.org/export/dump/
+
+# Path to the directory where Geonames files should-be stored
 geonames.files.location=resources/
 
 # List of feature classes to be excluded for indexing
